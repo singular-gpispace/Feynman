@@ -37,6 +37,8 @@ makedocs(;
             "Examples" =>  "Example_sing.md",
     
             "Functions" =>  "Functions_sing.md",
+
+            "Functions to work with user defined propagators" => "Functions_custom.md",
             
         ],
     ],

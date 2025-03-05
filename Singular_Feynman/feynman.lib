@@ -45,6 +45,7 @@ getReducedIBPSystem(G,targetInt )                       return reduced IBP syste
 ";
 
 LIB "linalg.lib";
+LIB "ellipticcovers.lib"; //For integer partition
 
 proc mod_init()
 {
@@ -55,9 +56,11 @@ newstruct("Net","list rows");
 newstruct("oneIBP","list c, list i");
 newstruct("setIBP","ring over,list seed,list IBP");
 newstruct("oneSector","list lab, list sectorMap ,list targetInts ");
+newstruct("MI","list masterIntegrals");
 system("install","labeledgraph","print",printLabeledGraph,1);
 system("install","graph","print",printGraph,1);
 system("install","oneIBP","print",printIBP,1);
+system("install","MI","print",printMI,1);
 system("install","setIBP","print",printsetIBP,1);
 system("install","Net","print",printNet,1);
 
@@ -255,12 +258,24 @@ EXAMPLE:  example printLabeledGraph; shows an example
 "
 {
 Net ne;
-ne = net(string(I.c[1]))+net("I")+net("(")+net(string(I.i[1]))+net(")");
+ne = net("(")+net(string(I.c[1]))+net(")")+net("G")+net("[")+net(string(I.i[1]))+net("]");
   for (int j = 2; j<=size(I.c);j++){
-     ne = ne+net("+")+net(string(I.c[j]))+net("I")+net("(")+net(string(I.i[j]))+net(")");
+     ne = ne+net("+")+net("(")+net(string(I.c[j]))+net(")")+net("G")+net("[")+net(string(I.i[j]))+net("]");
      
   }
-  ne=ne+net("=0");
+ // ne=ne+net("=0");
+printNet(ne);
+}
+
+proc printMI(MI I)
+{
+Net ne;
+ne = net("G")+net("[")+net(string(I.masterIntegrals[1]))+net("]");
+  for (int j = 2; j<=size(I.masterIntegrals);j++){
+     ne = ne+net(",")+net("G")+net("[")+net(string(I.masterIntegrals[j]))+net("]");
+     
+  }
+ // ne=ne+net("=0");
 printNet(ne);
 }
 
@@ -2284,8 +2299,8 @@ KEYWORDS: Feynman graph,IBPs
 return(list(reducedIBPs,MI));
 }
 example{"EXAMPLE:"; echo=2;
-  graph G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
-  list targetInt=list(list(1,1,1,-1,-3,-1,-1,-1,-1),list(1,-1,1,-1,-3,-1,-1,-4,-1));
+ graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  list targetInt=list(list(1,1,1,-1,-1,-1,-1,0,0),list(1,-1,1,-1,-1,-1,-1,0,0));
   list finalset=getReducedIBPSystem(G,targetInt);
   setIBP S=finalset[1];
   ring R=S.over;
@@ -2299,16 +2314,355 @@ example{"EXAMPLE:"; echo=2;
 
 
 
-proc computeManyIBP_local(def G0,list setNu)
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// The following functions can be used for similar computations as above, with user defined//////
+/// denominators, propagators and replacement rules.                                        //////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
-"USAGE:  computeManyIBP(G0,setNu); G0 graph@*,
-ASSUME:  setNu is a list of seeds correspond to the graph G0 which are belong to the same sector 
-RETURN:  setIBP S, where it contains all the IBP relations obtained by module intersection(done via localization) and seeding
-KEYWORDS: Feynman graph,IBPs
+
+////1. Make Baikov matrix
+
+proc makeBaikovMatrix(def G,list internalmomenta,list externalmomenta,list mandelsonvars,list propagat,list replacementRules)
+"USAGE:  makeBaikovMatrix(G,internalmomenta,externalmomenta, mandelsonvars, propagat, replacementRules); G labeledgraph, or G graph@*
+ASSUME:  G is a Graph, or@*
+         G is a labeled graph where redundant variables have been eliminated by 
+         the procedure eliminateVariables, and deleted from the ring by the 
+         procedure removeElimVars.
+RETURN:  a labeled graph G1, computes the Baikov matrix of G defined in G1.baikovover and stores it in G1.baikovmatrix
+KEYWORDS: Feynman graph
+EXAMPLE:  removeElimVars G; shows an example
+"
+{
+
+labeledgraph G1=G;
+ideal PI;
+//set ideal PI;
+for(int i=1;i<=size(propagat);i++){
+  PI[size(PI)+1]=propagat[i];
+}
+
+//applying replacements for external momenta
+ideal infedges;
+list pq;
+list pqt;
+list pqp;
+int idx=1;
+for(int i=1;i<=size(replacementRules) div 2;i++){
+  pqp[size(pqp)+1]=replacementRules[2*i-1];
+  pqt[size(pqt)+1]=replacementRules[2*i];
+if(replacementRules[2*i]==0){
+  infedges[size(infedges)+1]=replacementRules[2*i-1]-replacementRules[2*i];
+
+}
+else{
+  pq[size(pq)+1]=replacementRules[2*i];
+  PI[size(PI)+1]=replacementRules[2*i-1];
+  
+}
+}
+
+if(size(infedges)!=size(externalmomenta)){
+ERROR("This is not the situation that we considered in this package. for any external momenta p, it should hold p^2=0.");
+}
+
+ PI=reduce(PI,std(infedges));
+
+  ideal gram;
+  int ine=size(externalmomenta);
+  int bde=size(internalmomenta);
+  list labls=externalmomenta;
+  for(int i=1;i<=size(internalmomenta);i++){
+    labls[size(labls)+1]=internalmomenta[i];
+  }
+
+  for (int i = 1;i<=ine+bde;i++){
+    for (int j = 1;j<=ine+bde;j++){
+          if(i<=ine and j<=ine){
+            gram[idx]=0;
+          }
+          else{
+            gram[idx] = labls[i]*labls[j];
+          }
+      idx++;
+    }
+  }
+
+//-----------------------------
+gram=reduce(gram,std(infedges));
+
+  matrix A = lift(PI,gram);
+  int mt=size(mandelsonvars);
+  matrix B[bde+ine][bde+ine];
+  int idx=1;
+  poly sumt;
+  for (i=1; i<=bde+ine;i++){
+    for (j=i+1; j<=bde+ine;j++){
+
+      for(int k=1;k<=size(pqp);k++){
+        if(labls[i]*labls[j]==pqp[k] or labls[j]*labls[i]==pqp[k]){
+          B[i,j]=pqt[k];
+        }
+      }
+      if(B[i,j]<>0){
+        B[j,i]=B[i,j];
+      }
+      
+  
+    }
+  }
+  //set ring baikov over
+
+  int sizeProp=size(propagat);
+  int sizePq=size(pq);
+  string parat=string(mandelsonvars);
+  string zi;
+ 
+  for(int i=1;i<=size(propagat)-1;i++){
+  zi=zi+"z"+string(i)+",";
+  }
+  zi=zi+"z"+string(size(propagat));
+ 
+  ring Z;
+  string cmd="ring Z = (0,("+parat+",D)),("+zi+"),dp";
+  execute(cmd);
+  setring Z;
+  list zl;
+  for(int i=1;i<=nvars(Z);i++){
+    zl[size(zl)+1]=var(i);
+  }
+  matrix B=imap(R,B);
+  list pq=imap(R,pq);
+  matrix zvars[1][sizeProp+sizePq] = zl[1..size(zl)],pq[1..sizePq];
+  matrix A = imap(R,A);
+  matrix Bentries = zvars * A;
+  matrix B1[bde+ine][bde+ine] = Bentries[1,1..ncols(Bentries)];
+  B=B+B1;
+  printMat(B);
+  
+  G1.elimvars=list();
+  G1.baikovover=Z;
+  G1.baikovmatrix=B;
+  return(G1);
+  
+}
+example
+{ "EXAMPLE:"; echo=2;
+  //Setting the graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  //compute Baikov matrix
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+}
+
+//// 2. generate IBP relations
+//////2.1 compute M1
+proc makeM1(def G0)
+"USAGE:  makeM1(G0); G labeledgraph, or G graph@*
+ASSUME:  G0 is a Graph, or@*
+         G0 is a labeled graph where redundant variables have been eliminated by 
+         the procedure eliminateVariables, and deleted from the ring by the 
+         procedure removeElimVars.
+RETURN:  The module M1 over G1.baikovover that requires to compute IBP identities 
+KEYWORDS: Feynman graph
 "
 
-{ 
+{
 if (typeof(G0)=="graph"){
+  labeledgraph G1 =computeBaikovMatrix(G0);
+ // return(computeM1(G1));
+ kill G0;
+ labeledgraph G0=G1;
+ 
+}
+if (typeof(G0) != "labeledgraph"){
+  ERROR("expected a graph or labeledgraph");
+}
+labeledgraph G = G0;
+def R = G.over;
+int m=npars(R);
+ring RB=G.baikovover;
+matrix B=G.baikovmatrix;
+setring RB;
+int n=nvars(RB);
+matrix C[n][n];
+int tem=0;
+int E = m;
+int L = nvars(R);
+list x;
+for(int i=1;i<=E;i++){
+  for(int j=E+1;j<=E+L;j++){ 
+    tem=tem+1;
+    x[tem]=[i,j];   
+    for(int k=1;k<=n;k++){
+      //C[tem,k]=diff(B[i,j],z(k));
+      C[tem,k]=diff(B[i,j],var(k));
+    }
+  }
+}
+for(int i=E+1;i<=E+L;i++){
+  for(int j=i;j<=E+L;j++){ 
+    tem=tem+1;   
+    x[tem]=[i,j];
+    for(int k=1;k<=n;k++){
+      //C[tem,k]=diff(B[i,j],z(k));
+      C[tem,k]=diff(B[i,j],var(k));
+    }
+  }
+}
+
+matrix D=inverse(C);
+module M;
+int tem=1;
+for(int i=E+1;i<=E+L;i++){
+  for(int j=1;j<=E+L;j++){
+    
+    vector t=0*gen(n+1);
+    for(int l=1;l<=n;l++){
+      poly a=0;
+      for(int k=1;k<=E+L;k++){
+        //find the right row correspond to derivative
+            int o=0;
+            int c1;
+            poly c2=0;
+            if(i==k){
+              c1=2;
+            } else {
+              c1=1;
+            }
+            
+          for(int r=1;r<=size(x);r++){
+            if([i,k]==x[r] or [k,i]==x[r] ){
+              o=r;
+              
+            }
+          }
+
+          if(o != 0){
+            c2=D[l,o];
+          }
+          a=a+c1*c2*B[j,k];
+      }
+    t=t+a*gen(l);
+    }
+    if(i==j){
+      t=t-2*gen(n+1);
+    } else {
+      t=t+0*gen(n+1);
+    }
+    M[tem]=t;
+    tem=tem+1;
+  }
+}
+//Test the computation
+poly F=det(B);
+for(int j=1;j<size(M);j++){
+  poly testP=0;
+  for(int i=1;i<=n;i++){
+   // testP=testP+M[j][i]*diff(F,z(i));
+    testP=testP+M[j][i]*diff(F,var(i));
+    }
+  testP=testP+M[j][n+1]*F;
+  if(testP != 0){
+    print("Something wrong");
+  }
+
+}
+
+return(M);
+}
+
+example
+{ "EXAMPLE:"; echo=2;
+  graph G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+    labeledgraph G1=computeBaikovMatrix(G);
+   ring RB=G1.baikovover;
+    RB;
+    module ML=makeM1(G1);
+}
+
+//////2.2 compute M2
+
+proc makeM2(def G0,list Nu)
+"USAGE:  computeM2(G,Nu); G labeledgraph, or G graph@*
+ASSUME:  G is a Graph, or@*
+         G is a labeled graph where redundant variables have been eliminated by 
+         the procedure eliminateVariables, and deleted from the ring by the 
+         procedure removeElimVars.
+         Nu is the seed.
+RETURN:  The module M2 over G1.baikovover that requires to compute IBP identities 
+KEYWORDS: Feynman graph
+"
+{
+  if (typeof(G0)=="graph"){
+  labeledgraph G1 =computeBaikovMatrix(G0);
+ // return(computeM2(G1,Nu));
+  kill G0;
+  labeledgraph G0 = G1;
+}
+if (typeof(G0) != "labeledgraph"){
+  ERROR("expected a graph or labeledgraph");
+}
+
+labeledgraph G = G0;
+def R = G.over;
+int m=npars(R);
+ring RB=G.baikovover;
+matrix B=G.baikovmatrix;
+setring RB;
+int n=nvars(RB);
+
+if(size(Nu) != n){
+   ERROR("The length of the vector nu must equal to number of Baikov variables");
+}
+
+int tem=0;
+int E = m;
+int L = nvars(R);
+
+module M2;
+
+for(int i=1;i<=n;i++){
+  if(Nu[i]>0){
+              M2[i]=var(i)*gen(i);
+              } else {
+                      M2[i]=1*gen(i);
+                      }
+}
+M2[n+1]=1*gen(n+1);
+return(M2);
+}
+example
+{ "EXAMPLE:"; echo=2;
+  graph G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+    labeledgraph G1=computeBaikovMatrix(G);
+   ring RB=G1.baikovover;
+    RB;
+    module M2=makeM2(G1,list(1,1,1,0,0,1,0,0,0));
+    M2;
+}
+
+//////2.3 Make formal IBPs
+
+proc makeFormalIBP(def G0,list sector)
+"USAGE:  makeFormalIBP(G0,sector); G0 graph@*,
+ASSUME:   G0 is the labelled graph and is the output of makeBaikovMatrix. 
+          sector is the list of integers represent a sector of G.
+RETURN:  generators of the standard basis of  the module M1 intersect M2.
+KEYWORDS: Feynman graph,IBPs
+"
+{ 
+  if (typeof(G0)=="graph"){
   labeledgraph G1 =computeBaikovMatrix(G0);
   //return(computeM2(G1,Nu));
   kill G0;
@@ -2317,7 +2671,7 @@ if (typeof(G0)=="graph"){
 if (typeof(G0) != "labeledgraph"){
   ERROR("expected a graph or labeledgraph");
 }
-list Nu=setNu[1];
+
 labeledgraph G = G0;
 def R = G.over;
 int m=npars(R);
@@ -2328,50 +2682,134 @@ int n=nvars(RB);
 int E = m;
 int L = nvars(R);
 
-if(size(Nu) != n){
-  ERROR("The length of the vector nu must equal to number of Baikov variables");
+if (size(sector) > n){
+  ERROR("Wrong sector");
 }
 
-module M1=computeM1(G,Nu);
-module M2=computeM2(G,Nu);
-module M=intersect(M1,M2);
+//setting binary encoding of the sector
+list Nu;
+for(int i=1;i<=n;i++){
+  Nu[i]=0;
+}
 
-//***********************************************
-ring RU = 0,(z(1..n),t(1..(npars(RB)-1)),D),(rp(n),rp(npars(RB))); //lp(dp, dp, dp);
+for(int i=1;i<=size(sector);i++){
+  Nu[sector[i]]=1;
+}
 
-module M3=imap(RB,M);
+module M1=makeM1(G);
+module M2=makeM2(G,Nu);
+timer=0;
 option(redSB);
-degBound = 5; // Setting an appropreate degree bound is bit hard! depend on the target integrals
-option();
-module M4=std(M3);
-setring RB;
-module M=imap(RU,M4);
-
+module M=std(intersect(M1,M2));
+//module M=intersect(M1,M2);
 int elapsed_time=timer;
 print("time elapsed for the computation of  module intersection: " + string(elapsed_time));
-//***********************************************
 
 // testing the generators satisfy the relation
 poly F=det(B);
 for(int j=1;j<size(M);j++){
   poly testP=0;
   for(int i=1;i<=n;i++){
-    testP=testP+M[j][i]*diff(F,z(i));
+    //testP=testP+M[j][i]*diff(F,z(i));
+    testP=testP+M[j][i]*diff(F,var(i));
   }
   testP=testP+M[j][n+1]*F;
-  
+  //print(testP);
   if(testP != 0){
     print("Something wrong");
   }
 }
+
+return(M);
+}
+example{"EXAMPLE:"; echo=2;
+  //graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3); //sector that we are interested
+  module M=makeFormalIBP(G1,sector);
+  size(M);
+}
+
+
+///** Working over vectors for much faster computations
+
+/// 1.Make IBPs so that the denominator powers as vectors
+
+proc makeIBPVec(def G0,def M12, list setNu)
+"USAGE:  computeManyIBP(G0,setNu); G0 graph@*,
+ASSUME:  setNu is a list of seed correspond to the graph G0 which are belong to the same sector 
+          M12 is the formal IBP of the corresponding sector (output of makeFormalIBP).
+RETURN:  setIBP S, where it contains all the IBP relations obtained by module intersection and seeding
+KEYWORDS: Feynman graph,IBPs
+"
+{ 
+if (typeof(G0)=="graph"){
+  labeledgraph G1 =computeBaikovMatrix(G0);
+  return(computeM2(G1,Nu));
+  kill G0;
+  labeledgraph G0=G1;
+}
+if (typeof(G0) != "labeledgraph"){
+  ERROR("expected a graph or labeledgraph");
+}
+list Nu=setNu[1];
+labeledgraph G = G0;
+def R = G.over;
+int m=npars(R);
+//int m=exm;
+ring RB=G.baikovover;
+//ring RB=bR;
+matrix B=G.baikovmatrix;
+//matrix B=bM;
+setring RB;
+int n=nvars(RB);
+int E = m;
+int L = nvars(R);
+//int L=inm;
+if(size(Nu) != n){
+  ERROR("The length of the vector nu must equal to number of Baikov variables");
+}
+module M=M12;
+
+// testing the generators satisfy the relation
+poly F=det(B);
+for(int j=1;j<size(M);j++){
+  poly testP=0;
+  for(int i=1;i<=n;i++){
+    //testP=testP+M[j][i]*diff(F,z(i));
+    testP=testP+M[j][i]*diff(F,var(i));
+  }
+  testP=testP+M[j][n+1]*F;
+  //print(testP);
+  if(testP != 0){
+    print("Something wrong");
+  }
+}
+//
+
 ring Z=RB;
 setIBP S;
 
 S.over=Z;
-
+//S.over=RB;
 
 S.seed=Nu;
-
+//setring Z;
+//module M=imap(RB,M);
 int p=1;
 for(int b=1;b<=size(setNu);b++)
 {
@@ -2381,11 +2819,13 @@ for(int b=1;b<=size(setNu);b++)
   {
     list y;
     list l;
+    
   //computation of polynomial
     poly f=0;
     for(int j=1;j<=n;j++)
     {
-      f=f+(diff(M[i][j],z(j))-Nu[j]*M[i][j]/z(j));  
+     // f=f+(diff(M[i][j],z(j))-Nu[j]*M[i][j]/z(j));
+     f=f+(diff(M[i][j],var(j))-Nu[j]*M[i][j]/var(j));  
     }
     poly h=(D-L-E-1)/2;
     f=f-M[i][n+1]*h; 
@@ -2396,11 +2836,14 @@ for(int b=1;b<=size(setNu);b++)
         {
           y[t]=leadcoef(f);
           list nu;
+          vector v;
           for(int k=1;k<=size(Nu);k++)
           {
             nu[k]=Nu[k]-leadexp(f)[k];
+            v=v+nu[k]*gen(k);
           }
-        l[t]=nu;
+       // l[t]=nu;
+       l[t]=v;
         t=t+1;
         f=f-lead(f);
         }
@@ -2415,8 +2858,713 @@ for(int b=1;b<=size(setNu);b++)
 }
 
 return(S);
+//return(S.IBP);
+}
+example{"EXAMPLE:"; echo=2;
+  //include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
 
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+
+  //Assume the seed belong to the same sector
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,0,0));
+
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+
+    oneIBP I=L[1];
+    I;
+  
+}
+
+/// 2.get sorting measures as vectors
+
+proc getSortMeasuresVec(vector l,int x)
+"USAGE:   getSortMeasures(l,x); l list, x int; 
+ASSUME:   l is a list of integers (i.e a seed) and x is number of Baikov variables. 
+RETURN:   a vector of sort measures that are used in Laporta Algorithm
+KEYWORDS: Feynman graph
+EXAMPLE:  getSortMeasures; shows an example
+"
+{
+ int Nprop=0;
+ int   Nid=0;
+ int   r=0;
+ int   s=0;
+ list rv;
+ list sv;
+ for(int j=1;j<=x;j++){
+      Nprop=Nprop+heaviside(int(l[j])-1/2);
+        Nid=Nid+heaviside(int(l[j])-1/2)*2^(j-1);
+        r=r+int(l[j])*heaviside(int(l[j])-1/2);
+        s=s+absValue(int(l[j]))*heaviside(-int(l[j])+1/2);
+        //--------
+        if(int(l[j])>0){
+          rv[size(rv)+1]=int(l[j]);
+        }
+        else{
+          sv[size(sv)+1]=int(l[j]);
+        }
+        //---------
+ }
+//return(list(Nprop,Nid,r,s));
+list L=list(Nprop,Nid,r,s)+rv+sv;
+vector v;
+for(int i=1;i<=size(L);i++){
+  v=v+L[i]*gen(i);
+}
+return(v);
+}
+
+//check whether a vector is in the list of vectors
+proc isInListVec(list l,vector a)
+{
+int ind=0;
+for(int m=1;m <= size(l);m++){
+  
+  
+  if(l[m][1]==a){
+    ind++;
+  }
+          
+}
+    if(ind==0)
+    {
+      return(0);
+    }
+    else
+    {
+      return(1);
+    }
+}
+//
+
+
+// lex sort for vector
+proc lexSortVec(list L)
+{
+  int n=size(L);
+  for(int i=1;i<n;i++)
+  {
+    for(int j=1;j <= n-i;j++)
+    {
+      if(L[j][2]>L[j+1][2])
+      {
+        list temp=L[j];
+        L[j]=L[j+1];
+        L[j+1]=temp;
+      }
+    }
+  }
+  return(L);
+}
+
+//3.get sorted integrals as a vector
+
+proc getSortedIntegralsVec(setIBP I)
+"USAGE:  getSortedIntegrals(I); I setIBP,
+ASSUME:   
+RETURN:  list ind where each entry is a pair (indv,sortmeasures),
+          indv is the list of indices(seed) appered in the setIBP 
+          and sortmeasures is the output of getSortMeasuresVec(indv,x).
+          The function getSortedIntegrals extract the seeds appeared in the IBP identities of the setIBP,
+          sort them lexicographically based on the values got from getSortMeasuresVec and return the output.
+KEYWORDS: Feynman graph
+"
+{
+  ring RZ=I.over;
+  list ind;
+  list indS;
+  for(int j=1;j<=size(I.IBP);j++)
+  {
+      oneIBP oneI=I.IBP[j];
+      for(int k=1;k <= size(oneI.i);k++)
+      {
+        vector indv=oneI.i[k];
+        if(size(ind)==0){
+          ind[size(ind)+1]=list(indv,getSortMeasuresVec(indv,nvars(RZ)));
+          
+        }
+        else
+        { 
+          if(isInListVec(ind,indv)==0){
+              ind[size(ind)+1]=list(indv,getSortMeasuresVec(indv,nvars(RZ)));
+              
+          }
+        }
+      }
+  }
+  
+
+  list indc=lexSortVec(ind);
+return(indc);
+}
+example{"EXAMPLE:"; echo=2;
+  //include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+ 
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+  list L =getSortedIntegralsVec(S);
+}
+
+//4.Extract coefficients
+
+proc extractCoefVec(oneIBP I,list ind,list l,list sector)
+"USAGE:   extractCoefVec(I,ind,l,sector); I oneIBP,ind list,l list,
+ASSUME:   ind is the output of getSortedIntegralsVec, and l is the list of values over the base field I.baikovover. 
+          size(l)=npars(I.baikovover)
+RETURN:   list of values where, the i-th element is the evaluation of coefficient function  at values in the list l 
+          of the IBP relation oneIBP, whose index is i=ind[i][1].
+KEYWORDS: feynman graph,IBPs
+EXAMPLE:  extractCoefVec; shows an example
+"
+{ list v;
+  vector sect1;
+  for(int i=1;i<=size(sector);i++){
+    sect1=sect1+sector[i]*gen(i);
+  }
+
+  for(int j=1;j <= size(ind);j++){
+    int tem=0;
+    for(int k=1;k <= size(I.c);k++){
+      if(ind[j][1]==I.i[k]){
+        v[j]=substituteList(I.c[k],l);
+
+        tem++;
+      }
+
+      /// gettng sector of the itegral
+      vector sect2;
+      for(int w=1;w<=size(ind[j][1]);w++){
+        if(int(ind[j][1][w])>0){
+          sect2=sect2+w*gen(w);
+        }
+        else{
+          sect2=sect2+0*gen(w);
+        }
+      }
+
+      if(tem==0 or sect1<>sect2 ){
+        v[j]=0;
+      }
+    }
+  } 
+  return(v); 
+}
+
+//5.Create the matrix using IBPs to determine the independent IBPs
+
+proc makeMatVec(setIBP S,list val,list ind,list sector)
+"USAGE:   makeMatVec(S,val,ind,sector); S setIBP,ind list,l list,sector list;
+ASSUME:   size(val)=npars(S.over)
+RETURN:   matrix,where i-th row correspond to the evaluation of coefficient functions of i-th IBP in setIBP. 
+          Columns of the matrix correspond to the all used indices in the setIBP which are ordered with 
+          respect to the output ofgetSortMeasures. 
+KEYWORDS: feynman graph,IBPs
+EXAMPLE:  setMat; shows an example
+"
+{
+  ring RZ=S.over;
+ // list ind = getSortedIntegralsVec(S);
+  matrix X[size(S.IBP)][size(ind)];
+  for(int j=1;j <= size(S.IBP);j++){
+    oneIBP L=S.IBP[j];
+    list v=extractCoefVec(L,ind,val,sector);
+    for(int k=1;k <= size(v);k++){
+      X[j,k]=v[k];
+      
+    }
+  //  print("completed IBP= "+string(j));
+  }
+
+  return(X);
+}
+example{"EXAMPLE:"; echo=2;
+// include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  
+  ring RZ=G1.baikovover;
+
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+  
+  list val=getRandom(93187,npars(RZ));
+  
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+  
+  list L =getSortedIntegralsVec(S);
+  matrix N=makeMatVec(S,val,L,sector);
+}
+
+//6.Get independent IBPs where, the  integrals are in vector form
+
+proc getReducedIBPVec(setIBP S,int p,list sector)
+"USAGE:   getRedIBPVec(S,p,sector); 
+ASSUME:   S is setIBP, and p is a prime number. 
+RETURN:   list L, L[1]=indIBP, L[2]=seed where,
+          indIBP contain the linearly independent IBP relations of setIBP which are obtained by finite 
+          field row reduction over the field Fp. 
+          seed contain the indeces correspond to the non-free columns in rref.
+KEYWORDS: feynman graph,IBPs
+EXAMPLE:  getRedIBPs; shows an example
+"
+
+{
+  ring R=S.over;
+  timer=0;
+  
+  list ind = getSortedIntegralsVec(S);
+  int elapsed_time=timer;
+  print("Elapsed time to sort integrals involved in seconds:" + string( elapsed_time)); 
+  list val=getRandom(p,npars(R));
+  list indIBP;
+  int l=1;
+  
+  timer=0;
+  matrix N=makeMatVec(S,val,ind,sector);
+  int elapsed_time=timer;
+  print("Elapsed time to set the matrix over Fp in seconds:" + string( elapsed_time));  
+
+  //--set ring RZ
+  string param;
+  string varz;
+
+  for(int i=1;i<=npars(R)-1;i++){
+    string sr;
+    for(int j=2;j<=size(string(par(i)))-1;j++){
+      sr=sr+string(par(i))[j];
+    } 
+    if(i == npars(R)-1){
+      param=param+sr;
+    }
+    else{
+      param=param+sr+",";
+    }
+  
+  }
+
+  for(int i=1;i<nvars(R);i++){
+    varz=varz+string(var(i))+",";
+  }
+  varz=varz+string(var(nvars(R)));
+
+  //ring RZ=(p,t(1..(npars(R)-1)),D),z(1..nvars(R)),dp;
+  
+  ring RZ;
+  string cmd="ring RZ = (p,("+param+",D)),("+varz+"),dp";
+  execute(cmd);
+//--
+
+  matrix N=imap(R,N);
+  timer=0;
+  list Z=gaussred_pivot(N);
+  int elapsed_time = timer;
+  print("Elapsed time to compute rref in seconds:" +string( elapsed_time)+ ". size of the matrix:"+string(nrows(N))+" * "+string(ncols(N)));
+   setring R;
+  list Z=imap(RZ,Z);
+  for(int j=1;j <= Z[4];j++)
+  { for(int k=1;k <= ncols(Z[1]);k++)
+    {
+      if(Z[1][j,k] != 0){
+        indIBP[l]=S.IBP[k];
+        l++;
+      }
+    }
+
+  }
+
+  //identify non-zero columns
+  //list seed;
+  MI mi;
+  int l=1;
+  for(int k=1;k <= ncols(Z[3]);k++){
+    for(int j=1;j <= nrows(Z[3]);j++){
+      if(Z[3][j,k] != 0){
+        //seed[l]=ind[k][1];
+        mi.masterIntegrals[l]=ind[k][1];
+        l++;
+        break;
+      }
+    }
+
+  }
+
+  //return(list(indIBP,seed));
+  return(list(indIBP,mi));
+}
+example
+{ "EXAMPLE:"; echo=2;
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(s,t);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+
+  list L=getReducedIBPVec(S,93187,sector);
+  size(L[1])<size(S.IBP);
+  ring RS=S.over;
+  MI mi=L[2];
+  size(mi.masterIntegrals);
+  mi;
+  //print of reduced IBPs
+  for(int i=1;i<=size(L[1]);i++){
+    oneIBP I=L[1][i];
+    I;
+  }
+  //print of all IBPs
+  for(int i=1;i<=1;i++){
+    oneIBP I=S.IBP[i];
+    I;
+  }
+  
 }
 
 
+//7.Get IBPs with Mask. i.e. We exclude the integrals that are not belong to the current sector from IBPs
 
+proc getReleventIBPs(setIBP S,def sector)
+"USAGE:   getReleventIBPs(S,sector); 
+ASSUME:   S is setIBP. 
+RETURN:   setIBP S, where for each IBP, the terms consist of the integrals that are not 
+          belong to the given sector are removed (i.e., masking process is imposed).
+KEYWORDS: feynman graph,IBPs
+EXAMPLE:  getReleventIBPs; shows an example
+"
+{
+  //sector in vector form
+  setIBP S1;
+  S1.over=S.over;
+ vector sect1;
+ for(int k=1;k<=nvars(R);k++){
+  int a=sector[k];
+    sect1=sect1+a*gen(a); 
+  }
+ ring R=S.over;
+
+  for(int j=1;j <= size(S.IBP);j++){
+    oneIBP I=S.IBP[j];
+    oneIBP Inew;
+    for(int k=1;k <= size(I.i);k++){
+      //getting sector of each integral
+        vector sect2;
+        for(int w=1;w<=nvars(R);w++){
+          if(I.i[k][w]>0){
+            sect2=sect2+w*gen(w);
+          }
+          else{
+            sect2=sect2+0*gen(w);
+          }
+          
+        }
+
+
+      
+      if((sect2==sect1)==1){
+            Inew.c[size(Inew.c)+1]=I.c[k];
+        Inew.i[size(Inew.i)+1]=I.i[k];   
+      }
+     
+      
+      /// gettng sector of the integral
+      
+    }
+    if(size(Inew.i)<>0){
+    //S.IBP[j]=Inew;
+      S1.IBP[size(S1.IBP)+1]=Inew;
+    }
+    
+  } 
+  return(S1); 
+}
+example
+{ "EXAMPLE:"; echo=2;
+//include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+//include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(s,t);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+  
+  
+  module M=makeFormalIBP(G1,sector);
+  
+  setIBP S=makeIBPVec(G1,M,seeds);
+  setIBP S1=getReleventIBPs(S,sector);
+
+  oneIBP I = S1.IBP[1];
+  I;
+  
+}
+
+//8. Convert IBPs to the nice format
+
+proc getProperIBPs(int nv, list L)
+"USAGE:   getProperIBPs(nv,L); 
+ASSUME:   L is a list of IBPs and nv is number of Baikov variables. 
+RETURN:   a list of IBPs where the indeces of integrals (in vector format) in IBPs are converted to lists.
+KEYWORDS: feynman graph,IBPs
+EXAMPLE:  getProperIBP; shows an example
+"
+{ list Lnew;
+  for(int j=1; j<=size(L);j++){
+    oneIBP I=L[j];
+    oneIBP Inew;
+    
+    for(int k=1;k<=size(I.i);k++){
+      //make denominator powers as a list
+      list indl;
+      for(int l=1;l<=nv;l++){
+        indl[size(indl)+1]=I.i[k][l];
+      }
+      Inew.i[k]=indl;
+      Inew.c[k]=I.c[k];
+      
+
+    }
+    Lnew[size(Lnew)+1]=Inew;
+  }
+return(Lnew);
+}
+
+//9.Genetate independent IBPs respecting the steps
+
+proc getReducedIBPwithMask(def G1,def M,int p,list sector)
+"USAGE:   getReducedIBPwithMask(G1,M,p,sector); 
+ASSUME:   G is a graph, M is the output of the function makeFormalIBP, p is a prime number and sector 
+          is a list. 
+RETURN:   a list where the entry i contain the list of independent IBPs correspond to step i-1. Here we 
+          consider steps upto 4.
+KEYWORDS: feynman graph,IBPs
+EXAMPLE:  getReducedIBPwithMask; shows an example
+"
+{
+  labeledgraph G=G1;
+ 
+  list Lcom;
+  int bde=0;
+  for(int i=1;i<=size(G.edges);i++){
+    if(size(G.edges[i])==2){
+      bde=bde+1;
+    }
+  }
+  //list targetInt=list(1,1,1,1,1,1,1,0,0);
+  list targetInt;
+  for(int i=1;i<=nvars(G.baikovover);i++){
+    targetInt[i]=0;
+  }
+  for(int i=1;i<=size(sector);i++){
+    targetInt[sector[i]]=1;
+  }
+  
+   ring R=G.baikovover;
+  //Following the steps, we generate seeds
+  
+  for(int step=0;step<=4;step++){
+
+    list negatindex=partitions(nvars(R)-bde,step);
+    list seeds;
+    for(int i=1;i<=size(negatindex);i++){
+      list oneseed=getSector(targetInt)[1];
+      for(int j=bde+1;j<=nvars(R);j++){
+        oneseed[j]=-negatindex[i][j-bde];
+      }
+      seeds[size(seeds)+1]=oneseed;
+    }
+  
+    setIBP S=makeIBPVec(G1,M,seeds);
+    setIBP S1=getReleventIBPs(S,sector);
+    list L=getReducedIBPVec(S1,p,sector);
+    Lcom[size(Lcom)+1]=getProperIBPs(9,L[1]);
+    //Lcom[size(Lcom)+1]=S1.IBP;
+    print("Completed step :"+string(step));
+  }
+  
+  return(Lcom);
+  }
+  example
+{ "EXAMPLE:"; echo=2;
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(s,t);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  module M=makeFormalIBP(G1,sector);
+  list  Lprop=getReducedIBPwithMask(G1,M,93187,sector);  
+  //One can print the independent IBPs with mask correspond to step 0.
+   for(int j=1;j<=size(Lprop[1]);j++){
+    oneIBP I=Lprop[1][j];
+    if(size(I.i)<>0){
+      print(I);
+    }
+   } 
+  
+}
+
+//10.Genetate  IBPs (before reduction) respecting the steps
+
+proc getIBPwithMask(def G1,def M,int p,list sector)
+"USAGE:   getIBPwithMask(G1,M,p,sector); 
+ASSUME:   G is a graph, M is the output of the function makeFormalIBP, p is a prime number and sector
+           is a list. 
+RETURN:   a list where the entry i contain the list of IBPs correspond to step i-1. Here we consider 
+          steps upto 4.
+KEYWORDS: feynman graph,IBPs
+EXAMPLE:  getReducedIBPwithMask; shows an example
+"
+{
+  labeledgraph G=G1;
+  
+  list Lcom;
+  int bde=0;
+  for(int i=1;i<=size(G.edges);i++){
+    if(size(G.edges[i])==2){
+      bde=bde+1;
+    }
+  }
+  //list targetInt=list(1,1,1,1,1,1,1,0,0);
+  
+  list targetInt;
+  for(int i=1;i<=nvars(G.baikovover);i++){
+    targetInt[i]=0;
+  }
+  for(int i=1;i<=size(sector);i++){
+    targetInt[sector[i]]=1;
+  }
+  
+  //Following the steps, we generate seeds
+  ring R=G.baikovover;
+
+  for(int step=0;step<=4;step++){
+    print("Started step :"+string(step));
+    list negatindex=partitions(nvars(R)-bde,step);
+    list seeds;
+    for(int i=1;i<=size(negatindex);i++){
+      list oneseed=getSector(targetInt)[1];
+      for(int j=bde+1;j<=nvars(R);j++){
+        oneseed[j]=-negatindex[i][j-bde];
+      }
+      seeds[size(seeds)+1]=oneseed;
+    }
+  
+    
+    setIBP S=makeIBPVec(G1,M,seeds);
+    setIBP S1=getReleventIBPs(S,sector);
+   
+    Lcom[size(Lcom)+1]=getProperIBPs(9,S1.IBP);
+    print("Completed step :"+string(step));
+  }
+  
+ return(Lcom);
+  }
+
+ example
+{ "EXAMPLE:"; echo=2;
+  //include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  ////include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(s,t);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  module M=makeFormalIBP(G1,sector);
+  list Lprop=getIBPwithMask(G1,M,93187,sector);  
+
+  //One can use the following to print the IBPs with mask correspond to step 0
+   for(int j=1;j<=size(Lprop[1]);j++){
+    oneIBP I=Lprop[1][j];
+   
+      print(I);
+    
+   } 
+  
+}
