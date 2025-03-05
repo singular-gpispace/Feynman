@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Functions to work with user defined propagators · Feynman.jl</title><meta name="title" content="Functions to work with user defined propagators · Feynman.jl"/><meta property="og:title" content="Functions to work with user defined propagators · Feynman.jl"/><meta property="twitter:title" content="Functions to work with user defined propagators · Feynman.jl"/><meta name="description" content="Documentation for Feynman.jl."/><meta property="og:description" content="Documentation for Feynman.jl."/><meta property="twitter:description" content="Documentation for Feynman.jl."/><meta property="og:url" content="https://singular-gpispace.github.io/Feynman.jl/Functions_custom/"/><meta property="twitter:url" content="https://singular-gpispace.github.io/Feynman.jl/Functions_custom/"/><link rel="canonical" href="https://singular-gpispace.github.io/Feynman.jl/Functions_custom/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Feynman.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><span class="tocitem">Home</span><ul><li><a class="tocitem" href="../">Feynman</a></li><li><a class="tocitem" href="../Installation/">Installation</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../Example/">Example : Fully massless nonplanar double pentagon</a></li></ul></li><li><span class="tocitem">Functions</span><ul><li><a class="tocitem" href="../Overview/">Overview</a></li></ul></li><li><span class="tocitem">Singular version of Feynman</span><ul><li><a class="tocitem" href="../Installation_sing/">Home</a></li><li><a class="tocitem" href="../Overview_sing/">Overview</a></li><li><a class="tocitem" href="../Example_sing/">Examples</a></li><li><a class="tocitem" href="../Functions_sing/">Functions</a></li><li class="is-active"><a class="tocitem" href>Functions to work with user defined propagators</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Singular version of Feynman</a></li><li class="is-active"><a href>Functions to work with user defined propagators</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Functions to work with user defined propagators</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/singular-gpispace/Feynman" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/singular-gpispace/Feynman/blob/main/docs/src/Functions_custom.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="FUNCTIONS-TO-WORK-WITH-USER-DEFINED-PROPAGATORS"><a class="docs-heading-anchor" href="#FUNCTIONS-TO-WORK-WITH-USER-DEFINED-PROPAGATORS">FUNCTIONS TO WORK WITH USER DEFINED PROPAGATORS</a><a id="FUNCTIONS-TO-WORK-WITH-USER-DEFINED-PROPAGATORS-1"></a><a class="docs-heading-anchor-permalink" href="#FUNCTIONS-TO-WORK-WITH-USER-DEFINED-PROPAGATORS" title="Permalink"></a></h1><details>
+<summary>makeBaikovMatrix(def G,list internalmomenta,list externalmomenta,list mandelsonvars,list propagat,list replacementRules)</summary><p><strong>USAGE</strong>   :  makeBaikovMatrix(G,internalmomenta,externalmomenta, mandelsonvars, propagat, replacementRules); G labeledgraph, or G graph</p><p><strong>ASSUME</strong>  :   G is a Graph, or@*                 G is a labeled graph where redundant variables have been eliminated by                  the procedure eliminateVariables, and deleted from the ring by the                  procedure removeElimVars.</p><p><strong>RETURN</strong>  :  a labeled graph G1, computes the Baikov matrix of G defined in G1.baikovover and stores it in G1.baikovmatrix</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">//Setting the graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  //compute Baikov matrix
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);</code></pre></details><details>
+<summary>procedure: makeM1(def G0)</summary><p><strong>USAGE</strong>   :  makeM1(G0); G labeledgraph, or G graph</p><p><strong>ASSUME</strong>  :   0 is a Graph, or@*                 G0 is a labeled graph where redundant variables have been eliminated by                  the procedure eliminateVariables, and deleted from the ring by the                  procedure removeElimVars.</p><p><strong>RETURN</strong>  :  The module M1 over G1.baikovover that requires to compute IBP identities </p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">    graph G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+    labeledgraph G1=computeBaikovMatrix(G);
+    ring RB=G1.baikovover;
+    RB;
+    module ML=makeM1(G1);</code></pre></details><details>
+<summary>procedure: makeM2(def G0,list Nu)</summary><p><strong>USAGE</strong>   :  pcomputeM2(G,Nu); G labeledgraph, or G graph</p><p><strong>ASSUME</strong>  :   G is a Graph, or@*                 G is a labeled graph where redundant variables have been eliminated by                  the procedure eliminateVariables, and deleted from the ring by the                  procedure removeElimVars.                 Nu is the seed.</p><p><strong>RETURN</strong>  :  The module M2 over G1.baikovover that requires to compute IBP identities</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">    graph G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+    labeledgraph G1=computeBaikovMatrix(G);
+    ring RB=G1.baikovover;
+    RB;
+    module M2=makeM2(G1,list(1,1,1,0,0,1,0,0,0));
+    M2;</code></pre></details><details>
+<summary>procedure: makeFormalIBP(def G0,list sector)</summary><p><strong>USAGE</strong>   :  makeFormalIBP(G0,sector); G0 graph</p><p><strong>ASSUME</strong>  :   G0 is the labelled graph and is the output of makeBaikovMatrix.                  sector is the list of integers represent a sector of G.</p><p><strong>RETURN</strong>  :  generators of the standard basis of  the module M1 intersect M2.</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">//graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3); //sector that we are interested
+  module M=makeFormalIBP(G1,sector);
+  size(M);</code></pre></details><details>
+<summary>procedure: makeIBPVec(def G0,def M12, list setNu)</summary><p><strong>USAGE</strong>   :   makeIBPVec(G0,M12,setNu); G0 graph, M12 module, setNu list,</p><p><strong>ASSUME</strong>  :   setNu is a list of seed correspond to the graph G0 which are belong to the same sector                  M12 is the formal IBP of the corresponding sector (output of makeFormalIBP).</p><p><strong>RETURN</strong>  :  setIBP S, where it contains all the IBP relations obtained by module intersection and seeding</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs"> //include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+
+  //Assume the seed belong to the same sector
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,0,0));
+
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+
+    oneIBP I=S.IBP[1];
+    I;</code></pre></details><details>
+<summary>procedure: getSortMeasuresVec(vector l,int x)</summary><p><strong>USAGE</strong>   :  getSortMeasures(l,x); l list, x int; </p><p><strong>ASSUME</strong>  :  l is a list of integers (i.e a seed) and x is number of Baikov variables.</p><p><strong>RETURN</strong>  :  a vector of sort measures that are used in Laporta Algorithm</p></details><details>
+<summary>procedure: getSortedIntegralsVec(setIBP I)</summary><p><strong>USAGE</strong>   :  etSortedIntegrals(I); I setIBP</p><p><strong>ASSUME</strong>  :  </p><p><strong>RETURN</strong>  :   list ind where each entry is a pair (indv,sortmeasures),                 indv is the list of indices(seed) appered in the setIBP                  and sortmeasures is the output of getSortMeasuresVec(indv,x).                 The function getSortedIntegrals extract the seeds appeared in the IBP identities of the setIBP,                 sort them lexicographically based on the values got from getSortMeasuresVec and return the output.</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">//include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+ 
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+  list L =getSortedIntegralsVec(S);</code></pre></details><details>
+<summary>procedure: extractCoefVec(oneIBP I,list ind,list l,list sector)(matrix M)</summary><p><strong>USAGE</strong>   :  extractCoefVec(I,ind,l,sector); I oneIBP,ind list,l list</p><p><strong>ASSUME</strong>  :   ind is the output of getSortedIntegralsVec, and l is the list of values over the base field I.baikovover.                  size(l)=npars(I.baikovover)</p><p><strong>RETURN</strong>  :   list of values where, the i-th element is the evaluation of coefficient function  at values in the list l                  of the IBP relation oneIBP, whose index is i=ind[i][1].</p></details><details>
+<summary>procedure: makeMatVec(setIBP S,list val,list ind,list sector)</summary><p><strong>USAGE</strong>   :  makeMatVec(S,val,ind,sector); S setIBP,ind list,l list,sector list;</p><p><strong>ASSUME</strong>  :  size(val)=npars(S.over), ind is the output of getSortedIntegralsVec</p><p><strong>RETURN</strong>  :   matrix,where i-th row correspond to the evaluation of coefficient functions of i-th IBP in setIBP.                  Columns of the matrix correspond to the all used indices in the setIBP which are ordered with                  respect to the output ofgetSortMeasures.</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">// include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  //include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,t1,t2),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(t1,t2);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*t1,p1*p4,1/2*t2,p2*p4,-1/2*(t1+t2));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  
+  ring RZ=G1.baikovover;
+
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+  
+  list val=getRandom(93187,npars(RZ));
+  
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+  
+  list L =getSortedIntegralsVec(S);
+  matrix N=makeMatVec(S,val,L,sector);</code></pre></details><details>
+<summary>procedure: getReducedIBPVec(setIBP S,int p,list sector)</summary><p><strong>USAGE</strong>   :  getRedIBPVec(S,p,sector); </p><p><strong>ASSUME</strong>  :  S is setIBP, and p is a prime number. </p><p><strong>RETURN</strong>  :  list L, L[1]=indIBP, L[2]=seed where,                 indIBP contain the linearly independent IBP relations of setIBP which are obtained by finite                  field row reduction over the field Fp.                  seed contain the indeces correspond to the non-free columns in rref.</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(s,t);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+  module M=makeFormalIBP(G1,sector);
+  setIBP S=makeIBPVec(G1,M,seeds);
+
+  list L=getReducedIBPVec(S,93187,sector);
+  size(L[1])&lt;size(S.IBP);
+  ring RS=S.over;
+  MI mi=L[2];
+  size(mi.masterIntegrals);
+  mi;
+  //print of reduced IBPs
+  for(int i=1;i&lt;=size(L[1]);i++){
+    oneIBP I=L[1][i];
+    I;
+  }
+  //print of all IBPs
+  for(int i=1;i&lt;=1;i++){
+    oneIBP I=S.IBP[i];
+    I;
+  }</code></pre></details><details>
+<summary>procedure: getReleventIBPs(setIBP S,def sector)</summary><p><strong>USAGE</strong>   :  getReleventIBPs(S,sector); </p><p><strong>ASSUME</strong>  :  S is setIBP. </p><p><strong>RETURN</strong>  :  setIBP S, where for each IBP, the terms consist of the integrals that are not                  belong to the given sector are removed (i.e., masking process is imposed).</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">//include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+//include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(s,t);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  list seeds=list(list(1,1,1,1,1,1,1,-4,0),list(1,1,1,1,1,1,1,-1,-3),list(1,1,1,1,1,1,1,-2,-2),list(1,1,1,1,1,1,1,-3,-1),list(1,1,1,1,1,1,1,0,-4));
+  
+  
+  module M=makeFormalIBP(G1,sector);
+  
+  setIBP S=makeIBPVec(G1,M,seeds);
+  setIBP S1=getReleventIBPs(S,sector);
+
+  oneIBP I = S1.IBP[1];
+  I;</code></pre></details><details>
+<summary>procedure: getProperIBPs(int nv, list L)</summary><p><strong>USAGE</strong>   :  getProperIBPs(nv,L); </p><p><strong>ASSUME</strong>  :  L is a list of IBPs and nv is number of Baikov variables. </p><p><strong>RETURN</strong>  :  a list of IBPs where the indeces of integrals (in vector format) in IBPs are converted to lists.</p><p><strong>Example</strong> :</p></details><details>
+<summary>procedure: getReducedIBPwithMask(def G1,def M,int p,list sector)</summary><p><strong>USAGE</strong>   :  getReducedIBPwithMask(G1,M,p,sector); </p><p><strong>ASSUME</strong>  :  G is a graph, M is the output of the function makeFormalIBP, p is a prime number and sector                  is a list. </p><p><strong>RETURN</strong>  :   a list where the entry i contain the list of independent IBPs correspond to step i-1. Here we                  consider steps upto 4.</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">    graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+    labeledgraph lG = labelGraph(G,0);
+    labeledgraph G1 = eliminateVariables(lG);
+    labeledgraph G2 = removeElimVars(G1);
+
+    ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+    list internalmomenta=list(q1,q2);
+    list externalmomenta=list(p1,p2,p4);
+    list mandelsonvars=list(s,t);
+    list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+    list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+    labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+    ring RZ=G1.baikovover;
+    list sector=list(1,2,3,4,5,6,7);
+    module M=makeFormalIBP(G1,sector);
+    list  Lprop=getReducedIBPwithMask(G1,M,93187,sector);  
+    //One can print the independent IBPs with mask correspond to step 0.
+    for(int j=1;j&lt;=size(Lprop[1]);j++){
+     oneIBP I=Lprop[1][j];
+        if(size(I.i)&lt;&gt;0){
+        print(I);
+        }
+    } </code></pre></details><details>
+<summary>procedure: getIBPwithMask(def G1,def M,int p,list sector)</summary><p><strong>USAGE</strong>   :  getIBPwithMask(G1,M,p,sector);</p><p><strong>ASSUME</strong>  :  G is a graph, M is the output of the function makeFormalIBP, p is a prime number and sector                 is a list.</p><p><strong>RETURN</strong>  :   a list where the entry i contain the list of IBPs correspond to step i-1. Here we consider                  steps upto 4.</p><p><strong>Example</strong> :</p><pre><code class="language-singular hljs">//include graph information
+  graph  G = makeGraph(list(1,2,3,4,5,6),list(list(6,1),list(4,6),list(1,2),list(3,5),list(4,3),list(2,5),list(5,6),list(1),list(2),list(3),list(4)));
+  labeledgraph lG = labelGraph(G,0);
+  labeledgraph G1 = eliminateVariables(lG);
+  labeledgraph G2 = removeElimVars(G1);
+
+  ////include user specified propagators, replacement rules etc.
+  ring R=0,(q1,q2,p1,p2,p4,s,t),dp;
+  list internalmomenta=list(q1,q2);
+  list externalmomenta=list(p1,p2,p4);
+  list mandelsonvars=list(s,t);
+  list propagat=list(q1^2,(q1-p1)^2,(q1-p1-p2)^2,(q2+p1+p2)^2,(q2-p4)^2,q2^2,(q1+q2)^2,(q1+p4)^2,(q2+p1)^2);
+  list replacementRules=list(p1^2,0,p2^2,0,p4^2,0,p1*p2,1/2*s,p1*p4,1/2*t,p2*p4,-1/2*(s+t));
+  
+  labeledgraph G1=makeBaikovMatrix(G2,internalmomenta,externalmomenta,mandelsonvars,propagat,replacementRules);
+  ring RZ=G1.baikovover;
+  list sector=list(1,2,3,4,5,6,7);
+  module M=makeFormalIBP(G1,sector);
+  list Lprop=getIBPwithMask(G1,M,93187,sector);  
+
+  //One can use the following to print the IBPs with mask correspond to step 0
+   for(int j=1;j&lt;=size(Lprop[1]);j++){
+    oneIBP I=Lprop[1][j];
+   
+      print(I);
+    
+   } </code></pre></details></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Functions_sing/">« Functions</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Wednesday 5 March 2025 16:27">Wednesday 5 March 2025</span>. Using Julia version 1.11.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
