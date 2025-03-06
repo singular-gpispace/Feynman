@@ -375,21 +375,8 @@ od=invlex(RP);
     ta=ld-I[i];
     #ld=RP(ld);
 
-    if length(G.elimvar)==0
-        push!(G.elimvar,H(T(ld)));
-    else
-        k=0;
-        for j in 1:length(G.elimvar)
-            if G.elimvar[j]==ld || G.elimvar[j]==-ld 
-                k=k+1;
-                #print(eliminatedVariables);
-            end 
-            
-        end
-        if k==0
-            push!(G.elimvar,H(T(ld)));            
-        end
-        
+    if !any(x -> x==ld || x==-ld, G.elimvar)
+        push!(G.elimvar,H(T(ld)))
     end
     #ta=RP(ta); 
     G=substituteGraph(G,ld,ta);  
@@ -622,69 +609,25 @@ function propagators(G::labeledgraph)
     L=G.labels;
     S=G.over;
     RP=G.overpoly;
-   
-    u=[];
-    for i in 1:length(L)
-        if length(G.edges[i])==2
-                    push!(u,L[i]^2);                 
-        end
-                
-    end
-    J=ideal(S,u);
+
+    H=hom(S,RP,gens(RP))
+
+    u = [H(L[i]^2) for i in 1:length(L) if length(G.edges[i])==2]
+    J=ideal(RP,u);
     
-    v=[];
-    for i in 1:length(L)
-        if length(G.edges[i])==1          
-                    push!(v,L[i]^2);  
-        end             
-    end
-    infedges=ideal(S,v);
+    v = [H(L[i]^2) for i in 1:length(L) if length(G.edges[i])==1]
+    infedges=ideal(RP,v);
 
-#ring Map from RP to S
-    H=hom(S,RP,gens(RP));
-#Ideal I an an Ideal of RP
-  v=[];
-  u=[];
-  for i in 1:ngens(J)
-    push!(v,H(J[i]));
-    push!(u,H(J[i])); 
-  end
-  J=ideal(RP,v);
-
-#Ideal J as an ideal of RP
-  v=[];
-  
-  for i in 1:ngens(infedges)
-    push!(v,H(infedges[i])); 
-  end
-  infedges=ideal(RP,v);
-
-
-#reduce J w.r.t std basis of infedges
-SB_infedges=standard_basis(infedges,ordering=invlex(RP));
-
-N=Vector{typeof(RP(1))}(undef,0);
-for i in 1:ngens(J)
-    push!(N,RP(J[i]));     
-end
-
-M=Vector{typeof(RP(1))}(undef,0);
-for i in 1:length(SB_infedges)
-    push!(M,RP(SB_infedges[i]));     
-end
-
-N=reduce(N,M,ordering=invlex(RP),complete_reduction=true);
-
-#rewite the ideal J as an ideal of S
-T=hom(RP,S,gens(S));
-
-v=[];
-for i in 1:length(N)
-push!(v,T(N[i])); 
-end
-
-J=ideal(S,v);
-return J;
+    #reduce J w.r.t std basis of infedges
+    SB_infedges=standard_basis(infedges,ordering=invlex(RP));
+    
+    N=reduce(gens(J), SB_infedges,ordering=invlex(RP),complete_reduction=true)
+    
+    #rewrite the ideal J as an ideal of S
+    T=hom(RP,S,gens(S))
+    
+    J=ideal(S,T.(N))
+    return J
 end
 
 
