@@ -427,12 +427,8 @@ function removeVariable(R::Ring,l::Vector)
         end
     end
     
-    genR=deleteat!(gens(R),l);
-    v=String[];
-    for i in 1:length(genR)
-        push!(v,string(genR[i]))       
-    end
-    R,c=polynomial_ring(coefficient_ring(R),v);
+    v=deleteat!(copy(symbols(R)),l)
+    R,c=polynomial_ring(coefficient_ring(R),v)
     return R
 end
 
@@ -465,21 +461,14 @@ function removeVariableLocal(P::Ring,l::Vector)
 
     R=base_ring(P);
     nv=0;
-    genR=gens(R);
     for j in 1:length(l)
         if l[j]<0|| l[j]>ngens(R) 
             throw(error("Index out of range"));
-        end 
-        
+        end
+
     end
 
-    genR=deleteat!(gens(R),l);
-        #print(genR);
-
-    v=String[];
-    for i in 1:length(genR)
-        push!(v,string(genR[i]))       
-    end
+    v=deleteat!(copy(symbols(R)),l)
     #delete jth variable from base ring
     S,c=polynomial_ring(coefficient_ring(R),v);
     #-------
@@ -555,10 +544,7 @@ function removeParameter(P::Ring,l::Vector)
     end
     
     genR=deleteat!(gens(R),l);
-    v=String[];
-    for i in 1:length(genR)
-        push!(v,string(genR[i]))       
-    end
+    v=deleteat!(copy(symbols(R)),l)
     #delete jth variable from base ring
     S,c=polynomial_ring(coefficient_ring(R),v);
     #-------
