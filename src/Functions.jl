@@ -1419,8 +1419,7 @@ function computeIBP(G::labeledgraph,Nu::Vector{Int64},cutDeg::Int,showGens::Bool
     gens_RZ=gens(RZ);
     B=G.baikovmatrix;
 #-----------------------------------------------------------------------------------#
-    S=matrix_space(RZ,size(G.baikovmatrix)[1],size(G.baikovmatrix)[2]);
-    C=S(G.baikovmatrix);
+    C=matrix(RZ, G.baikovmatrix)
     f=det(C);  
 #-----------------------------------------------------------------------------------#
 #Compute E and Count L
@@ -1766,8 +1765,7 @@ function computeM1(G::labeledgraph)
     gens_RZ=gens(RZ);
     B=G.baikovmatrix;
     
-    S=matrix_space(RZ,size(G.baikovmatrix)[1],size(G.baikovmatrix)[2]);
-    C=S(G.baikovmatrix);
+    C=matrix(RZ, G.baikovmatrix);
     f=det(C);
 
     npars=0;
@@ -1825,8 +1823,7 @@ function computeM1(G::labeledgraph)
         W[length(var_z),l]=derivative(B[E+L,E+L],var_z[l]);
 
     end
-    S=matrix_space(RZ,size(W)[1],size(W)[2]);
-    C=S(W);
+    C=matrix(RZ, W)
     C=inv(C);
     for i in E+1:E+L
         for j in 1:E+L
