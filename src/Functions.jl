@@ -92,12 +92,7 @@ function printGraph(G::simple_graph)
     num_ver=length(G.vertices);
     num_edg=length(G.edges);
    
-    ct=0;
-        for i in 1:num_edg
-            if length(G.edges[i])==1
-                ct=ct+1;
-            end    
-        end
+    ct = count(e -> length(e)==1, G.edges)
 
     if ct!=0
         println("Graph with ", num_ver ," vertices and ",num_edg-ct ," bounded edges ",ct," unbounded edges")
@@ -170,12 +165,7 @@ function labelGraph(G::simple_graph,ch::Int)
         error("ch must be nonnegative integer")
     
     end
-    ct=0;
-    for i in 1:length(G.edges)
-        if length(G.edges[i])==1
-            ct=ct+1;
-        end    
-    end
+    ct = count(e -> length(e)==1, G.edges)
     anzq=length(G.edges)-ct;
     
     ##P=(Z/pZ)[p(1),...,p(ct),q(1),...q(anzq)]
