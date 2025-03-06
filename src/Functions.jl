@@ -393,8 +393,6 @@ od=invlex(RP);
     end
     #ta=RP(ta); 
     G=substituteGraph(G,ld,ta);  
-    ld=0;
-    ta=0;
   end  
   #G.elimvar=Vector{typeof(RP(1))}(undef,0);
   #G.elimvar=eliminatedVariables;
