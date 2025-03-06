@@ -420,12 +420,7 @@ Multivariate polynomial ring in 2 variables p[1], p[3]
 ```
 """
 function removeVariable(R::Ring,l::Vector)
-    nv=0;
-    for j in 1:length(l) 
-        if l[j]<0|| l[j]>ngens(R)
-            throw(error("Index out of range"));
-        end
-    end
+    @req all(x -> x in 1:ngens(R), l) "Index out of range"
     
     v=deleteat!(copy(symbols(R)),l)
     R,c=polynomial_ring(coefficient_ring(R),v)
@@ -460,13 +455,7 @@ Localization
 function removeVariableLocal(P::Ring,l::Vector)
 
     R=base_ring(P);
-    nv=0;
-    for j in 1:length(l)
-        if l[j]<0|| l[j]>ngens(R) 
-            throw(error("Index out of range"));
-        end
-
-    end
+    @req all(x -> x in 1:ngens(R), l) "Index out of range"
 
     v=deleteat!(copy(symbols(R)),l)
     #delete jth variable from base ring
@@ -535,13 +524,7 @@ Localization
 """
 function removeParameter(P::Ring,l::Vector)
     R=base_ring(P);
-    genR=gens(R);
-    nv=0;
-    for j in 1:length(l)
-        if l[j]<0|| l[j]>ngens(R)
-            throw(error("Index out of range"));
-        end
-    end
+    @req all(x -> x in 1:ngens(R), l) "Index out of range"
     
     genR=deleteat!(gens(R),l);
     v=deleteat!(copy(symbols(R)),l)
