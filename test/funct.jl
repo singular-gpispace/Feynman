@@ -42,7 +42,7 @@
     S,p=polynomial_ring(QQ,["p[1]","p[4]"])
 
     @testset "removeVariable test" begin
-        @test_throws ErrorException removeVariable(R,[5])
+        @test_throws ArgumentError removeVariable(R,[5])
          @test   S==removeVariable(R,[2,3])
     end
     
@@ -57,7 +57,7 @@
             U,iso=localization(S,T);
     
     @testset "removeParameter test" begin
-        @test_throws ErrorException removeVariable(R,[8])
+        @test_throws ArgumentError removeVariable(R,[8])
     end
 
 end
